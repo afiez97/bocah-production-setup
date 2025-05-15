@@ -9,26 +9,50 @@
 - [ ] Create config `/etc/nginx/sites-available/your-app`
 - [ ] Sample Nginx config:
   ```nginx
-  server {
-      listen 80;
-      server_name your_domain.com;
+  # Konfigurasi Nginx untuk Laravel Application (Produksi)
 
-      root /var/www/your-app/public;
-      index index.php index.html;
+server {
+    listen 80;  # Port HTTP standard
+    server_name your_domain.com;  # Tukar kepada domain sebenar atau IP pelayan
 
-      location / {
-          try_files $uri $uri/ /index.php?$query_string;
-      }
+    # Folder root aplikasi Laravel - pastikan ia menunjuk ke 'public'
+    root /var/www/your-app/public;
+    index index.php index.html;
 
-      location ~ \.php$ {
-          include snippets/fastcgi-php.conf;
-          fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;
-      }
+    # Semua request akan dilayan oleh Laravel melalui index.php
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;  # Routing Laravel
+    }
 
-      location ~ /\.ht {
-          deny all;
-      }
-  }
+    # Konfigurasi untuk fail PHP
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;  # Guna konfigurasi FastCGI standard
+
+        # Tukar ikut versi PHP server, contoh:
+        # PHP 7.4  : /var/run/php/php7.4-fpm.sock
+        # PHP 8.1  : /var/run/php/php8.1-fpm.sock
+        fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;
+        
+        # Jika guna TCP (bukan socket):
+        # fastcgi_pass 127.0.0.1:9000;
+    }
+
+    # Sekat akses kepada fail tersembunyi seperti .htaccess
+    location ~ /\.ht {
+        deny all;  # Sekuriti tambahan
+    }
+
+    # (Optional) Sekat akses ke folder tersembunyi
+    location ~ /\. {
+        deny all;
+        access_log off;
+        log_not_found off;
+    }
+
+    # (Optional) Tambah log access dan error
+    # access_log /var/log/nginx/your-app_access.log;
+    # error_log /var/log/nginx/your-app_error.log;
+}
   ```
 - [ ] Enable site:
   ```
