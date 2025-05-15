@@ -54,6 +54,52 @@ server {
     # error_log /var/log/nginx/your-app_error.log;
 }
   ```
+  ```
+# Konfigurasi Nginx Laravel untuk HTTPS (SSL)
+
+server {
+    listen 443 ssl http2;  # Guna port 443 untuk HTTPS
+    server_name your_domain.com;  # Tukar kepada domain sebenar anda
+
+    # Lokasi fail SSL - dapat dari provider SSL seperti Let's Encrypt, DigiCert, dsb.
+    ssl_certificate     /etc/ssl/certs/your_domain.crt;  # Sijil SSL
+    ssl_certificate_key /etc/ssl/private/your_domain.key;  # Private key SSL
+
+    # (Optional) Gunakan SSL intermediate chain jika diperlukan
+    # ssl_trusted_certificate /etc/ssl/certs/chain.pem;
+
+    root /var/www/your-app/public;
+    index index.php index.html;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;  # Routing Laravel
+    }
+
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;
+    }
+
+    location ~ /\.ht {
+        deny all;
+    }
+
+    # Sekuriti tambahan SSL (boleh tambah lagi jika perlu)
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+}
+
+# Redirect HTTP ke HTTPS (Optional)
+server {
+    listen 80;
+    server_name your_domain.com;
+
+    return 301 https://$host$request_uri;  # Redirect semua ke HTTPS
+}
+  ```
+
+
+
 - [ ] Enable site:
   ```
   sudo ln -s /etc/nginx/sites-available/your-app /etc/nginx/sites-enabled/
