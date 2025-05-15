@@ -1,27 +1,18 @@
-# Database Server (MySQL) Setup
+# PostgreSQL Check & Debug Checklist (Production - Ubuntu)
 
-- [ ] `sudo apt update && upgrade`
-- [ ] Install: `mysql-server`
-- [ ] `sudo mysql_secure_installation`
-- [ ] Edit `/etc/mysql/mysql.conf.d/mysqld.cnf`:
-  ```
-  bind-address = 0.0.0.0
-  ```
-- [ ] Restart MySQL:
-  ```
-  sudo systemctl restart mysql
-  ```
-- [ ] Create database:
-  ```
-  CREATE DATABASE your_db;
-  ```
-- [ ] Create user:
-  ```
-  CREATE USER 'user'@'app_ip' IDENTIFIED BY 'pass';
-  ```
-- [ ] Grant privileges:
-  ```
-  GRANT ALL ON your_db.* TO 'user'@'app_ip';
-  FLUSH PRIVILEGES;
-  ```
-- [ ] Open port 3306 in firewall (UFW or cloud)
+| Step                         | Command to Check                                               | Command to Fix                                                | Good Output Example                                  | Common Errors / Issues                                  |
+|------------------------------|---------------------------------------------------------------|---------------------------------------------------------------|-----------------------------------------------------|--------------------------------------------------------|
+| Check PostgreSQL service      | `sudo systemctl status postgresql`                            | `sudo systemctl start postgresql`                             | `active (running)`                                   | `inactive`, `failed`, service not found                |
+| List all databases            | `sudo -u postgres psql -c "\l"`                               | N/A                                                           | List of databases with names, owners, encodings     | `FATAL: role "postgres" does not exist`                |
+| List all users/roles          | `sudo -u postgres psql -c "\du"`                              | N/A                                                           | List of users and roles                              | Empty list, permission denied                           |
+| Check DB privileges           | `sudo -u postgres psql -d your_database -c "\dp"`             | N/A                                                           | Tables with privileges listed                        | `FATAL: database "your_database" does not exist`       |
+| Confirm listen addresses      | `grep listen_addresses /etc/postgresql/$(ls /etc/postgresql)/main/postgresql.conf` | Edit postgresql.conf to set `listen_addresses = '*'`          | `listen_addresses = '*'`                             | `listen_addresses = 'localhost'` blocks external access|
+| Check client authentication   | `cat /etc/postgresql/$(ls /etc/postgresql)/main/pg_hba.conf`  | Edit pg_hba.conf to allow remote connections                  | Lines allowing `host` connections with correct IPs  | Connection denied errors due to wrong config           |
+| Restart PostgreSQL            | `sudo systemctl restart postgresql`                           | N/A                                                           | No errors, service restarts successfully             | `Job for postgresql.service failed.`                    |
+| Check firewall status         | `sudo ufw status`                                              | `sudo ufw allow 5432/tcp`                                     | `5432/tcp ALLOW`                                    | Port 5432 blocked                                      |
+| Test DB remote connection     | `psql -h your_db_ip -U your_user -d your_database`            | Fix credentials, pg_hba.conf, or firewall                     | `your_database=#` prompt                             | `FATAL: password authentication failed`, connection refused |
+| Verify Laravel `.env` config  | Check `.env` file in Laravel project root                      | Correct DB credentials, host, and port                         | Correct DB connection parameters                     | Wrong credentials or host causes connection failure    |
+| Run Laravel migration status  | `php artisan migrate:status`                                  | Fix DB connection or migrations                                | Migration status listed                              | DB connection errors, SQLSTATE errors                   |
+| Tail Laravel logs            | `tail -n 50 storage/logs/laravel.log`                          | Debug errors and fix accordingly                               | No DB connection errors                              | Authentication failures, connection refused            |
+| Tail PostgreSQL logs          | `sudo tail -n 50 /var/log/postgresql/postgresql-$(ls /etc/postgresql)-main.log` | Fix config or user authentication                              | Normal startup and query logs                         | Authentication failures, syntax errors                   |
+
